@@ -5,6 +5,7 @@ import socket, errno
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from fake_useragent import UserAgent
 
 class OpenSSH:
     def __init__(self, host, username, password, port, known_hosts = None):
@@ -21,6 +22,7 @@ class OpenSSH:
             host = self.host,
             username = self.username,
             password = self.password,
+            port = 22,
             known_hosts = self.known_hosts
         ) as conn:
             listener = await conn.forward_socks('127.0.0.1', self.port)
@@ -84,12 +86,15 @@ if __name__ == '__main__':
     sshstatus, host, port = controlssh.start()
     print(sshstatus, host, port)
     if sshstatus:
+        userAgent = UserAgent().safari
+        print(userAgent)
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--window-size=1024,768')
-        chrome_options.add_argument('--proxy-server=socks5://127.0.0.1:1080')
+        chrome_options.add_argument(f'user-agent={userAgent}')
+        chrome_options.add_argument("--proxy-server=socks5://127.0.0.1:1080")
         driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(),chrome_options=chrome_options)
         driver.implicitly_wait(30)
         actions = webdriver.ActionChains(driver)
