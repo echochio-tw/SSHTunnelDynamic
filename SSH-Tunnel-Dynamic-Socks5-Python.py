@@ -8,11 +8,12 @@ from selenium.webdriver.chrome.options import Options
 from fake_useragent import UserAgent
 
 class OpenSSH:
-    def __init__(self, host, username, password, port, known_hosts = None):
+    def __init__(self, host, username, password, sshport, port, known_hosts = None):
         self.host = host
         self.username = username
         self.password = password
         self.port = port
+        self.sshport = sshport
         self.known_hosts = known_hosts
         self.conn = None
         self.ssh_status = None
@@ -22,7 +23,7 @@ class OpenSSH:
             host = self.host,
             username = self.username,
             password = self.password,
-            port = 22,
+            port = self.sshport,
             known_hosts = self.known_hosts
         ) as conn:
             listener = await conn.forward_socks('127.0.0.1', self.port)
@@ -46,11 +47,12 @@ class OpenSSH:
         return self.ssh_status
 
 class SSHProxyControler:
-    def __init__(self, host, username, password, port, known_hosts = None, port_retry = 100, stop_thread = False):
+    def __init__(self, host, username, password, sshport, port, known_hosts = None, port_retry = 100, stop_thread = False):
         self.host = host
         self.username = username
         self.password = password
         self.port = port
+        self.sshport = sshport
         self.known_hosts = known_hosts
         self.stop_thread = stop_thread
         self.port_retry = port_retry
@@ -66,25 +68,25 @@ class SSHProxyControler:
                         self.port += 1
                         self.port_retry -= 1
                     else:
-                        return False, self.host, self.port
+                        return False, self.host, self.sshport, self.port
                 s.close()
                 break
             else:
-                return False, self.host, self.port
+                return False, self.host, self.sshport, self.port
     
-        myssh = OpenSSH(self.host, self.username, self.password, self.port)
+        myssh = OpenSSH(self.host, self.username, self.password, self.sshport, self.port)
         t1 = threading.Thread(target = myssh.thr, args=(lambda: self.stop_thread, ))
         t1.daemon = True
         t1.start()
-        return myssh.waitResult(), self.host, self.port
+        return myssh.waitResult(), self.host, self.sshport, self.port
   
     def stop(self):
         self.stop_thread = True
-
+        
 if __name__ == '__main__':
-    controlssh = SSHProxyControler('172.16.0.100', 'root', 'TestForwarder', 1080)
-    sshstatus, host, port = controlssh.start()
-    print(sshstatus, host, port)
+    controlssh = SSHProxyControler('172.16.0.100', 'root', 'TestForwarder', 22, 1080)
+    sshstatus, host, sshport, port = controlssh.start()
+    print(sshstatus, host, sshport, port)
     if sshstatus:
         userAgent = UserAgent().safari
         print(userAgent)
